@@ -7,51 +7,67 @@ class GitLabAPI:
         self.base_url = base_url.rstrip('/')  # Ensure base_url does not end with '/'
         self.headers = {'PRIVATE-TOKEN': token}
 
-    def fetch_group_and_subgroups(self, group_id):
+    def fetch_group_info(self, group_id):
         """
-        Fetch group and subgroup IDs recursively.
+        Fetch details of a GitLab group.
 
         Args:
         - group_id (str or int): The ID or URL-encoded path of the group.
 
         Returns:
-        - list: A list of group IDs (integers).
+        - dict: Dictionary containing group information.
+        """
+        try:
+            url = f"{self.base_url}/groups/{group_id}"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch group information for group ID {group_id}: {e}")
+            return {}
+
+    def fetch_subgroups(self, group_id):
+        """
+        Fetch subgroups of a GitLab group.
+
+        Args:
+        - group_id (str or int): The ID or URL-encoded path of the group.
+
+        Returns:
+        - list: List of dictionaries, each containing subgroup information.
+        """
+        try:
+            url = f"{self.base_url}/groups/{group_id}/subgroups"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch subgroups for group ID {group_id}: {e}")
+            return []
+
+    def fetch_all_group_ids(self, group_id):
+        """
+        Recursively fetch all group IDs within a specified group, including subgroups.
+
+        Args:
+        - group_id (str or int): The ID or URL-encoded path of the group.
+
+        Returns:
+        - list: List of integers representing group IDs.
         """
         group_ids = []
 
-        def fetch_group_info(group_id):
-            try:
-                url = f"{self.base_url}/groups/{group_id}"
-                response = requests.get(url, headers=self.headers)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as e:
-                print(f"Failed to fetch group information for group ID {group_id}: {e}")
-                return None
-
-        def fetch_subgroups(group_id):
-            try:
-                url = f"{self.base_url}/groups/{group_id}/subgroups"
-                response = requests.get(url, headers=self.headers)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as e:
-                print(f"Failed to fetch subgroups for group ID {group_id}: {e}")
-                return []
-
         def process_group(group_info):
-            try:
-                group_ids.append(group_info['id'])
-                subgroups = fetch_subgroups(group_info['id'])
-                for subgroup in subgroups:
-                    subgroup_info = fetch_group_info(subgroup['id'])
-                    if subgroup_info:
-                        process_group(subgroup_info)
-            except KeyError as e:
-                print(f"KeyError while processing group info: {e}")
+            group_ids.append(group_info['id'])
+
+            subgroups = self.fetch_subgroups(group_info['id'])
+            for subgroup in subgroups:
+                subgroup_info = self.fetch_group_info(subgroup['id'])
+                if subgroup_info:
+                    process_group(subgroup_info)
 
         try:
-            main_group_info = fetch_group_info(group_id)
+            main_group_info = self.fetch_group_info(group_id)
             if main_group_info:
                 process_group(main_group_info)
         except Exception as e:
@@ -87,7 +103,7 @@ class GitLabAPI:
                 if group_projects:
                     projects.extend(group_projects)
 
-                subgroups = fetch_subgroups(group_id)
+                subgroups = self.fetch_subgroups(group_id)
                 for subgroup in subgroups:
                     subgroup_projects = fetch_projects(f"{self.base_url}/groups/{subgroup['id']}/projects")
                     if subgroup_projects:
@@ -156,7 +172,7 @@ if __name__ == "__main__":
     gitlab = GitLabAPI(gitlab_base_url, gitlab_token)
 
     group_id = 'group-name'  # Replace with your group ID or URL-encoded path
-    group_ids = gitlab.fetch_group_and_subgroups(group_id)
+    group_ids = gitlab.fetch_all_group_ids(group_id)
 
     print(f"All group IDs within group '{group_id}': {group_ids}")
 
