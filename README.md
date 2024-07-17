@@ -1,25 +1,74 @@
-# gitlab-projects-cloner
-**Description:** 
-"A Python script leveraging GitLab API to clone projects and handle nested subgroups recursively. Ideal for managing GitLab group repositories locally."
+# GitLab Projects Cloner
 
-### Additional Details:
-- **Summary:** This repository contains Python scripts encapsulated in a class-oriented approach to interact with GitLab's API. It enables users to clone projects from a specified GitLab group, including projects nested within subgroups. The code includes robust error handling, adhering to secure coding practices.
-  
-- **Features:**
-  - Clone individual projects by ID or URL-encoded path.
-  - Recursively clone projects from nested subgroups within a specified GitLab group.
-  - Uses GitPython for managing Git operations and requests for HTTP interactions with GitLab's API.
-  
-- **Usage:** 
-  - Replace placeholders with your GitLab base URL and API token.
-  - Specify the group ID or URL-encoded path for cloning projects.
-  - Run the script to clone projects locally, ensuring accurate attribution and error-free operations.
+## Overview
 
-**Explanation of Updates:**
-- **_get_projects_in_group Method:** This new private method is introduced to recursively fetch all projects within a group, including projects in nested subgroups. It uses nested functions (fetch_projects and process_group) to handle fetching recursively:
-  - *fetch_projects* function retrieves projects for a given URL.
-  - *process_group* function iterates through projects and subgroups within a group, recursively fetching projects from nested subgroups.
+This Python script allows you to clone all projects within a GitLab group, including projects in nested subgroups, to a specified local path. It utilizes the GitLab API to fetch project information and GitPython library for cloning repositories.
 
-- **clone_group_projects Method:** Updated to use _get_projects_in_group method to fetch all projects (including nested subgroups) and then clone each project similar to before.
+## Features
 
-- **Handling Nested Subgroups:** This approach ensures that all projects within the specified group, including those in nested subgroups, are cloned to the specified local directory (path_to_clone).
+- Recursively fetch projects from a specified GitLab group, including subgroups.
+- Clone each project's repository to a local directory.
+- Handle GitLab API authentication using a personal access token.
+
+## Requirements
+
+- Python 3.x
+- GitPython library (`gitpython`), which can be installed via pip:
+  ```
+  pip install gitpython
+  ```
+
+## Usage
+
+1. **Clone the Repository**
+
+   Clone this repository to your local machine:
+   ```
+   git clone https://github.com/your-username/gitlab-projects-cloner.git
+   cd gitlab-projects-cloner
+   ```
+
+2. **Configure GitLab API Token**
+
+   Replace `YOUR_GITLAB_API_TOKEN` in `gitlab_projects_cloner.py` with your GitLab personal access token. Ensure the token has sufficient permissions to read group and project information.
+
+3. **Run the Script**
+
+   Modify `gitlab_projects_cloner.py` to specify the GitLab base URL (`gitlab_base_url`) and the group ID or URL-encoded path (`group_id`) of the group you want to clone. Also, specify the local path (`group_clone_path`) where projects should be cloned.
+
+   ```python
+   if __name__ == "__main__":
+       gitlab_base_url = 'https://gitlab.com/api/v4'
+       gitlab_token = 'YOUR_GITLAB_API_TOKEN'
+
+       gitlab = GitLabAPI(gitlab_base_url, gitlab_token)
+
+       group_id = 'group-name'  # Replace with your group ID or URL-encoded path
+       group_clone_path = '/path/to/group/clone'
+
+       gitlab.clone_group_projects(group_id, group_clone_path)
+   ```
+
+   **Explanation**:
+   - `gitlab_base_url`: Specifies the base URL of your GitLab instance's API.
+   - `gitlab_token`: Your GitLab API token for authentication.
+   - `group_id`: Identifier or URL-encoded path of the GitLab group containing projects to clone.
+   - `group_clone_path`: Local directory path where projects will be cloned.
+
+4. **Execute the Script**
+
+   Run the script to clone projects from the specified GitLab group:
+   ```
+   python gitlab_projects_cloner.py
+   ```
+
+   The script will clone each project into the `group_clone_path` directory on your local machine.
+
+## Notes
+
+- Make sure your GitLab API token (`gitlab_token`) has the necessary permissions to read group and project information.
+- Adjust the GitLab base URL (`gitlab_base_url`) according to your GitLab instance's API version and configuration.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
