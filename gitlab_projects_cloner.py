@@ -41,36 +41,47 @@ class GitLabAPI:
         """
         Clone all projects within a GitLab group, including projects in nested subgroups,
         to a specified local path.
-
+        
         Args:
         - group_id (str or int): The ID or URL-encoded path of the group.
         - path_to_clone (str): Local directory where projects should be cloned.
-
+        
         Raises:
         - requests.HTTPError: If the request to GitLab fails.
         - git.exc.GitCommandError: If Git command fails during cloning.
-
+        
         Returns:
         - None
         """
         try:
             projects = self._get_projects_in_group(group_id)
+        
+            if not projects:
+                print(f"No projects found in group {group_id}.")
+                return
 
             for project in projects:
-                project_name = project['name']
-                project_id = project['id']
-                clone_url = project['ssh_url_to_repo']
+                project_name = project.get('name', 'Unnamed Project')
+                project_id = project.get('id', 'Unknown ID')
+                clone_url = project.get('ssh_url_to_repo')
+                if not clone_url:
+                    print(f"Project '{project_name}' has no SSH URL to repo.")
+                    continue
+                
                 project_path = os.path.join(path_to_clone, project_name)
-
-                git.Repo.clone_from(clone_url, project_path)
-                print(f"Successfully cloned project '{project_name}' to '{project_path}'.")
-
+                
+                try:
+                    git.Repo.clone_from(clone_url, project_path)
+                    print(f"Successfully cloned project '{project_name}' to '{project_path}'.")
+                except git.exc.GitCommandError as e:
+                    print(f"Failed to clone project '{project_name}': {e}")
+                
         except requests.exceptions.RequestException as e:
             print(f"Failed to retrieve group information: {e}")
 
-        except git.exc.GitCommandError as e:
-            print(f"Failed to clone repository: {e}")
-
+        except Exception as e:
+            print(f"An error occurred during cloning: {e}")
+        
 
 # Example usage:
 if __name__ == "__main__":
