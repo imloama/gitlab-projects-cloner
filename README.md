@@ -14,3 +14,12 @@
   - Replace placeholders with your GitLab base URL and API token.
   - Specify the group ID or URL-encoded path for cloning projects.
   - Run the script to clone projects locally, ensuring accurate attribution and error-free operations.
+
+**Explanation of Updates:**
+- **_get_projects_in_group Method:** This new private method is introduced to recursively fetch all projects within a group, including projects in nested subgroups. It uses nested functions (fetch_projects and process_group) to handle fetching recursively:
+  - *fetch_projects* function retrieves projects for a given URL.
+  - *process_group* function iterates through projects and subgroups within a group, recursively fetching projects from nested subgroups.
+
+- **clone_group_projects Method:** Updated to use _get_projects_in_group method to fetch all projects (including nested subgroups) and then clone each project similar to before.
+
+- **Handling Nested Subgroups:** This approach ensures that all projects within the specified group, including those in nested subgroups, are cloned to the specified local directory (path_to_clone).
