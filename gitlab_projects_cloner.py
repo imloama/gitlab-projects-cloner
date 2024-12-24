@@ -6,6 +6,19 @@ class GitLabAPI:
     def __init__(self, base_url, token):
         self.base_url = base_url.rstrip('/')  # Ensure base_url does not end with '/'
         self.headers = {'PRIVATE-TOKEN': token}
+    
+    def fetch_groups(self):
+        """
+        Fetch groups
+        """
+        try:
+            url = f"{self.base_url}/groups"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch group information for group ID {group_id}: {e}")
+            return {}
 
     def fetch_group_info(self, group_id):
         """
@@ -98,14 +111,19 @@ class GitLabAPI:
 
         def process_group_projects(group_id):
             try:
-                url = f"{self.base_url}/groups/{group_id}/projects"
-                group_projects = fetch_projects(url)
-                if group_projects:
-                    projects.extend(group_projects)
+                for page in range(1,100):
+                    url = f"{self.base_url}/groups/{group_id}/projects?page={page}&per_page=100"
+                    group_projects = fetch_projects(url)
+                    if group_projects:
+                        projects.extend(group_projects)
+                    else:
+                        print(f"no project for page ={page}, per_page = 100")
+                        break
 
                 subgroups = self.fetch_subgroups(group_id)
                 for subgroup in subgroups:
-                    subgroup_projects = fetch_projects(f"{self.base_url}/groups/{subgroup['id']}/projects")
+                    subgroup_projects = fetch_projects(f"{self.base_url}/groups/{subgroup['id']}/projects?per_page=100")
+                    print(subgroup_projects)
                     if subgroup_projects:
                         projects.extend(subgroup_projects)
             except Exception as e:
@@ -137,7 +155,6 @@ class GitLabAPI:
         """
         try:
             projects = self.fetch_projects_in_group(group_id)
-
             if not projects:
                 print(f"No projects found in group {group_id}.")
                 return
@@ -151,12 +168,14 @@ class GitLabAPI:
                     continue
 
                 project_path = os.path.join(path_to_clone, project_name)
-
-                try:
-                    git.Repo.clone_from(clone_url, project_path)
-                    print(f"Successfully cloned project '{project_name}' to '{project_path}'.")
-                except git.exc.GitCommandError as e:
-                    print(f"Failed to clone project '{project_name}': {e}")
+                if not os.path.exists(project_path):
+                    try:
+                        git.Repo.clone_from(clone_url, project_path)
+                        print(f"Successfully cloned project '{project_name}' to '{project_path}'.")
+                    except git.exc.GitCommandError as e:
+                        print(f"Failed to clone project '{project_name}': {e}")
+                else:
+                    print(f"path exists: {project_path}, skip to clone project.")
 
         except requests.exceptions.RequestException as e:
             print(f"Failed to retrieve group information: {e}")
@@ -170,11 +189,16 @@ if __name__ == "__main__":
     gitlab_token = 'YOUR_GITLAB_API_TOKEN'
 
     gitlab = GitLabAPI(gitlab_base_url, gitlab_token)
-
-    group_id = 'group-name'  # Replace with your group ID or URL-encoded path
-    group_ids = gitlab.fetch_all_group_ids(group_id)
-
-    print(f"All group IDs within group '{group_id}': {group_ids}")
-
-    group_clone_path = '/path/to/group/clone'
-    gitlab.clone_group_projects(group_id, group_clone_path)
+    # git all groups info
+    groups = gitlab.fetch_groups()
+    
+    clone_path = '/path/to/clone'
+    
+    for item in groups:
+        group_id = item["id"]
+        web_url = item["web_url"]
+        name = item["name"]
+        group_clone_path = os.path.join(clone_path, name)
+        if not os.path.exists(group_clone_path):
+            os.mkdir(group_clone_path)
+        gitlab.clone_group_projects(group_id, group_clone_path)
