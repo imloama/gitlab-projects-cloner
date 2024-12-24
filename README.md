@@ -43,17 +43,22 @@ This Python script allows you to clone all projects within a GitLab group, inclu
 
        gitlab = GitLabAPI(gitlab_base_url, gitlab_token)
 
-       group_id = 'group-name'  # Replace with your group ID or URL-encoded path
-       group_clone_path = '/path/to/group/clone'
+       clone_path = '/path/to/clone'
 
-       gitlab.clone_group_projects(group_id, group_clone_path)
+       for item in groups:
+          group_id = item["id"]
+          web_url = item["web_url"]
+          name = item["name"]
+          group_clone_path = os.path.join(clone_path, name)
+            if not os.path.exists(group_clone_path):
+               os.mkdir(group_clone_path)
+            gitlab.clone_group_projects(group_id, group_clone_path)
    ```
 
    **Explanation**:
    - `gitlab_base_url`: Specifies the base URL of your GitLab instance's API.
    - `gitlab_token`: Your GitLab API token for authentication.
-   - `group_id`: Identifier or URL-encoded path of the GitLab group containing projects to clone.
-   - `group_clone_path`: Local directory path where projects will be cloned.
+   - `clone_path`: Local directory path where projects will be cloned.
 
 4. **Execute the Script**
 
@@ -68,6 +73,7 @@ This Python script allows you to clone all projects within a GitLab group, inclu
 
 - Make sure your GitLab API token (`gitlab_token`) has the necessary permissions to read group and project information.
 - Adjust the GitLab base URL (`gitlab_base_url`) according to your GitLab instance's API version and configuration.
+- Fetch projects of group contains pagination. set `per_page` is `100`, and max page is `99`. If you have many many projects in a group, you should modify the function in `line 114`.
 
 ## License
 
